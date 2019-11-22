@@ -75,6 +75,9 @@
     </dependencies>
 
     <build>
+        <finalName>
+            datatrans4es
+        </finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

@@ -36,7 +36,7 @@ public class DemoCtl {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
     @Autowired
     private Environment env;
-    private final int maxsize = 2;
+
 
 
     @RequestMapping("/exportz")
@@ -46,6 +46,7 @@ public class DemoCtl {
             String indexName = env.getProperty("es.index.name");
             String typeName = env.getProperty("es.index.type");
             String elasticIps = env.getProperty("es.address");
+            int maxsize=Integer.parseInt(env.getProperty("es.maxrow"));
 //            String indexName = "x_restree_dev";
 //            String typeName = "def_dev";
 //            String elasticIps = "http://192.168.0.23:9200";
