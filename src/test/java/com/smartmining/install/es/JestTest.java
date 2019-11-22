@@ -21,22 +21,24 @@ import io.searchbox.indices.mapping.PutMapping;
 
 public class JestTest {
     private static JestClient jestClient;
-    private static String indexName = "userindex";
+    private static String indexName = "x_restree_dev";
     //      private static String indexName = "userindex2";
-    private static String typeName = "user";
-    private static String elasticIps = "http://192.169.2.98:9200";
+    private static String typeName = "def_dev";
+    private static String elasticIps = "http://192.168.0.23:9200";
 //      private static String elasticIps="http://127.0.0.1:9200";
 
 
     public static void main(String[] args) throws Exception {
         jestClient = getJestClient();
-        insertBatch();
+//        insertBatch();
         serach1();
-        serach2();
-        serach3();
+//        serach2();
+//        serach3();
         jestClient.close();
 
     }
+
+
 
     private static JestClient getJestClient() {
         JestClientFactory factory = new JestClientFactory();
@@ -63,7 +65,7 @@ public class JestTest {
      * 全文搜索
      */
     public static void serach1() {
-        String query = "工程师";
+        String query = "新字段2";
         try {
             SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
             searchSourceBuilder.query(QueryBuilders.queryStringQuery(query));
