@@ -38,15 +38,14 @@ public class DemoCtl {
     private Environment env;
 
 
-
     @RequestMapping("/exportz")
-    public String importz(@RequestParam String code, HttpServletResponse response) {
+    public String exportz(@RequestParam String code, HttpServletResponse response) {
         JestClient jestClient = null;
         try {
             String indexName = env.getProperty("es.index.name");
             String typeName = env.getProperty("es.index.type");
             String elasticIps = env.getProperty("es.address");
-            int maxsize=Integer.parseInt(env.getProperty("es.maxrow"));
+            int maxsize = Integer.parseInt(env.getProperty("es.maxrow"));
 //            String indexName = "x_restree_dev";
 //            String typeName = "def_dev";
 //            String elasticIps = "http://192.168.0.23:9200";
@@ -72,7 +71,7 @@ public class DemoCtl {
             }
             byte[] bytes = JSON.toJSONBytes(dataArr);
             try {
-                String fileName =code+"_"+getToDayDateStr() + ".json";
+                String fileName = code + "_" + getToDayDateStr() + ".json";
                 response.addHeader("Content-Disposition", "attachment;filename=" + fileName);
                 response.addHeader("filename", fileName);
                 OutputStream toClient = new BufferedOutputStream(response.getOutputStream());
@@ -169,4 +168,88 @@ public class DemoCtl {
         return sdf.format(new Date());
     }
 
+    @RequestMapping("/exportsub")
+    public String exportsub(@RequestParam String id, HttpServletResponse response) {
+        JestClient jestClient = null;
+        try {
+            String indexName = env.getProperty("es.index.name");
+            String typeName = env.getProperty("es.index.type");
+            String elasticIps = env.getProperty("es.address");
+            int maxsize = Integer.parseInt(env.getProperty("es.maxrow"));
+//            String indexName = "x_restree_dev";
+//            String typeName = "def_dev";
+//            String elasticIps = "http://192.168.0.23:9200";
+            JestClientFactory factory = new JestClientFactory();
+            factory.setHttpClientConfig(new HttpClientConfig.Builder(elasticIps).connTimeout(60000).readTimeout(60000).multiThreaded(true).build());
+            jestClient = factory.getObject();
+            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+            searchSourceBuilder.from(0).size(maxsize);
+            searchSourceBuilder.query(QueryBuilders.termQuery("c_id", id));
+            Search search = new Search.Builder(searchSourceBuilder.toString())
+                    .addIndex(indexName)
+                    .addType(typeName)
+                    .build();
+            JestResult jr = jestClient.execute(search);
+            List<String> results = jr.getSourceAsStringList();
+            if (results.size() != 1) {
+                logger.warn("没有查询到数据");
+                return "没有查询到数据";
+            }
+            JSONArray dataArr = new JSONArray();
+            JSONObject jsonObject = JSON.parseObject(results.get(0));
+            dataArr.add(jsonObject);
+            recursionByPid(jsonObject.getString("c_id"), dataArr, jestClient, indexName, typeName, maxsize);
+            byte[] bytes = JSON.toJSONBytes(dataArr);
+            try {
+                String fileName = id + "_" + getToDayDateStr() + ".json";
+                response.addHeader("Content-Disposition", "attachment;filename=" + fileName);
+                response.addHeader("filename", fileName);
+                OutputStream toClient = new BufferedOutputStream(response.getOutputStream());
+                response.setContentType("*/*");
+                toClient.write(bytes);
+                toClient.flush();
+                toClient.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+                logger.error("文件下载异常！", e);
+
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (jestClient != null) {
+                try {
+                    jestClient.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return "success";
+    }
+
+
+    private void recursionByPid(String pid, JSONArray dataArr, JestClient jestClient, String indexName, String typeName, int maxsize) throws IOException {
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.from(0).size(maxsize);
+        searchSourceBuilder.query(QueryBuilders.termQuery("c_pid", pid));
+        Search search = new Search.Builder(searchSourceBuilder.toString())
+                .addIndex(indexName)
+                .addType(typeName)
+                .build();
+        JestResult jr = jestClient.execute(search);
+        List<String> results = jr.getSourceAsStringList();
+        if (results.size() < 0) {
+            logger.warn("没有查询到数据");
+            return;
+        } else {
+            JSONObject jsonObject;
+            for (int i = 0; i < results.size(); i++) {
+                jsonObject = JSON.parseObject(results.get(i));
+                dataArr.add(jsonObject);
+                recursionByPid(jsonObject.getString("c_id"), dataArr, jestClient, indexName, typeName, maxsize);
+            }
+        }
+    }
 }
