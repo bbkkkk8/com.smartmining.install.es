@@ -192,8 +192,8 @@ public class DemoCtl {
             bulk.addAction(dr);
             logger.info("删除血统id={},内容={}",hit.id,hit.source.toJSONString());
         });
-//        BulkResult   br = jestClient.execute(bulk.build());
-//        logger.info(br.isSucceeded() + "");
+        BulkResult   br = jestClient.execute(bulk.build());
+        logger.info(br.isSucceeded() + "");
 
 
 //        List<String> results2 = jr2.getSourceAsStringList();
@@ -229,8 +229,8 @@ public class DemoCtl {
                 logger.info(br.isSucceeded() + "");
             }
         }
-//        br = jestClient.execute(bulk.build());
-//        logger.info(br.isSucceeded() + "");
+        br = jestClient.execute(bulk.build());
+        logger.info(br.isSucceeded() + "");
     }
 
     private String getToDayDateStr() {
