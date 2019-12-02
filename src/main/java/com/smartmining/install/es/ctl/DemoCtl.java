@@ -138,12 +138,14 @@ public class DemoCtl {
             logger.error("无对应数据！");
             return "无对应数据！";
         }
-        // id设置为null，直接新增
+        JSONObject one=treeData.get(0);
+        String oldcode=one.getString("c_tenant_one_code");
+        // 写入前数据转换为对应租户数据
         treeData.stream().forEach(e -> {
             e.put("c_tenant_one_code", code);
-            e.put("c_id", e.getString("c_id").replace(e.getString("c_tenant_one_code"), code));
+            e.put("c_id", e.getString("c_id").replace(oldcode, code));
 //            e.put("c_id",UUID.randomUUID().toString().replace("-",""));//测试用
-            logger.debug(e.toJSONString());
+            logger.info("写入资源{}",e.toJSONString());
         });
 
         Bulk.Builder bulk = new Bulk.Builder().defaultIndex(treeIndexName).defaultType(typeName);
@@ -158,15 +160,15 @@ public class DemoCtl {
             batchDeleteBlood(obj.getString("c_id"), bloodIndexName, typeName, jestClient);
             if (cnt % 500 == 0) {
                 br = jestClient.execute(bulk.build());
-                logger.debug(br.isSucceeded() + "");
+                logger.info(br.isSucceeded() + "");
             }
         }
 
         br = jestClient.execute(bulk.build());
-        logger.debug(br.isSucceeded() + "");
+        logger.info(br.isSucceeded() + "");
 
 
-        batchInsertBlood(bloodData,bloodIndexName,typeName,jestClient);
+        batchInsertBlood(bloodData,bloodIndexName,typeName,oldcode,code,jestClient);
 
         jestClient.close();
         return "success,total=" + treeData.size();
@@ -175,7 +177,7 @@ public class DemoCtl {
     private void batchDeleteBlood(String id, String bloodIndexName, String typeName, JestClient jestClient) throws IOException {
         Bulk.Builder bulk = new Bulk.Builder().defaultIndex(bloodIndexName).defaultType(typeName);
         SearchSourceBuilder searchSourceBuilder2 = new SearchSourceBuilder();
-        searchSourceBuilder2.from(0).size(20000);
+        searchSourceBuilder2.from(0).size(10000);
         searchSourceBuilder2.query(QueryBuilders.termQuery("c_id", id));
         Search search2 = new Search.Builder(searchSourceBuilder2.toString())
                 .addIndex(bloodIndexName)
@@ -185,13 +187,13 @@ public class DemoCtl {
                 jestClient.execute(search2)
                         .getHits(JSONObject.class);
         searchResults.forEach(hit -> {
-            logger.debug(String.format("Document %s has score %s", hit.id, hit.score));
+            logger.info(String.format("Document %s has score %s", hit.id, hit.score));
             Delete dr = new Delete.Builder(hit.id).build();
             bulk.addAction(dr);
-
+            logger.info("删除血统id={},内容={}",hit.id,hit.source.toJSONString());
         });
 //        BulkResult   br = jestClient.execute(bulk.build());
-//        logger.debug(br.isSucceeded() + "");
+//        logger.info(br.isSucceeded() + "");
 
 
 //        List<String> results2 = jr2.getSourceAsStringList();
@@ -206,22 +208,29 @@ public class DemoCtl {
 
     }
 
-    private void batchInsertBlood(List<JSONObject> bloodData, String bloodIndexName, String typeName, JestClient jestClient) throws IOException {
+    private void batchInsertBlood(List<JSONObject> bloodData, String bloodIndexName, String typeName,String oldcode,String code, JestClient jestClient) throws IOException {
         Bulk.Builder bulk = new Bulk.Builder().defaultIndex(bloodIndexName).defaultType(typeName);
         Index index;
         BulkResult br;
         int cnt = 0;
         for (JSONObject obj : bloodData) {
             cnt++;
+            if(obj.getString("c_bloodid")==null){//有些垃圾数据
+                continue;
+            }
+            obj.put("c_tenant_one_code",code);
+            obj.put("c_id",obj.getString("c_id").replace(oldcode,code));
+            obj.put("c_bloodid",obj.getString("c_bloodid").replace(oldcode,code));
             index = new Index.Builder(obj).build();
+            logger.info("写入血统{}",obj.toJSONString());
             bulk.addAction(index);
             if (cnt % 500 == 0) {
                 br = jestClient.execute(bulk.build());
-                logger.debug(br.isSucceeded() + "");
+                logger.info(br.isSucceeded() + "");
             }
         }
 //        br = jestClient.execute(bulk.build());
-//        logger.debug(br.isSucceeded() + "");
+//        logger.info(br.isSucceeded() + "");
     }
 
     private String getToDayDateStr() {
@@ -232,13 +241,16 @@ public class DemoCtl {
     @RequestMapping("/exportsub")
     public String exportsub(@RequestParam String id, HttpServletResponse response) {
         JestClient jestClient = null;
+        JSONArray treeArr = new JSONArray();
         try {
             String envName = env.getProperty("es.index.env");
             String elasticIps = env.getProperty("es.address");
             String treeIndexName = "x_restree" + envName;
             String bloodIndexName = "x_blood" + envName;
             String typeName = "def" + envName;
-            int maxsize = Integer.parseInt(env.getProperty("es.maxrow"));
+//            int maxsize = Integer.parseInt(env.getProperty("es.maxrow"));
+            int maxsize = 10000;
+
 //            String indexName = "x_restree_dev";
 //            String typeName = "def_dev";
 //            String elasticIps = "http://192.168.0.23:9200";
@@ -254,14 +266,14 @@ public class DemoCtl {
                     .build();
             JestResult jr = jestClient.execute(search);
             List<String> results = jr.getSourceAsStringList();
-            if (results.size() != 1) {
+            if (results==null||results.size() < 1) {
                 logger.warn("没有查询到数据");
                 return "没有查询到数据";
             }
-            JSONArray dataArr = new JSONArray();
+
 
             JSONObject jsonObject = JSON.parseObject(results.get(0));
-            dataArr.add(jsonObject);
+            treeArr.add(jsonObject);
 
             JSONArray bloodArr = new JSONArray();
 
@@ -274,18 +286,17 @@ public class DemoCtl {
                     .build();
             JestResult jr2 = jestClient.execute(search2);
             List<String> results2 = jr2.getSourceAsStringList();
-            if (results2.size() < 1) {
-                logger.warn("没有查询到数据");
-                return "没有查询到数据";
-            }
-            for (int i = 0; i < results2.size(); i++) {
-                bloodArr.add(JSON.parseObject(results2.get(i)));
+            if (results2==null||results2.size() < 1) {
+                logger.warn("没有查询到血统数据");
+            }else {
+                for (int i = 0; i < results2.size(); i++) {
+                    bloodArr.add(JSON.parseObject(results2.get(i)));
+                }
             }
 
-
-            recursionByPid(jsonObject.getString("c_id"), dataArr, bloodArr, jestClient, treeIndexName, bloodIndexName, typeName, maxsize);
+            recursionByPid(jsonObject.getString("c_id"), treeArr, bloodArr, jestClient, treeIndexName, bloodIndexName, typeName, maxsize);
             JSONObject jsonResult = new JSONObject();
-            jsonResult.put("treedata", dataArr);
+            jsonResult.put("treedata", treeArr);
             jsonResult.put("blooddata", bloodArr);
             byte[] bytes = JSON.toJSONBytes(jsonResult);
             try {
@@ -300,7 +311,7 @@ public class DemoCtl {
             } catch (Exception e) {
                 e.printStackTrace();
                 logger.error("文件下载异常！", e);
-
+                return "文件下载异常"+e.getMessage();
             }
 
         } catch (IOException e) {
@@ -314,7 +325,7 @@ public class DemoCtl {
                 }
             }
         }
-        return "success";
+        return "success,total=" + treeArr.size();
     }
 
 
@@ -328,7 +339,7 @@ public class DemoCtl {
                 .build();
         JestResult jr = jestClient.execute(search);
         List<String> results = jr.getSourceAsStringList();
-        if (results.size() < 0) {
+        if (results==null||results.size() < 0) {
             logger.warn("没有查询到数据");
             return;
         } else {
@@ -351,13 +362,12 @@ public class DemoCtl {
                 jr2 = jestClient.execute(search2);
                 results2 = jr2.getSourceAsStringList();
                 if (results2.size() < 1) {
-                    logger.warn("没有查询到数据");
-                    continue;
+                    logger.warn("没有查询到血统数据");
+                }else {
+                    for (int j = 0; j < results2.size(); j++) {
+                        bloodArr.add(JSON.parseObject(results2.get(j)));
+                    }
                 }
-                for (int j = 0; j < results2.size(); j++) {
-                    bloodArr.add(JSON.parseObject(results2.get(j)));
-                }
-
                 recursionByPid(jsonObject.getString("c_id"), dataArr, bloodArr, jestClient, treeIndexName, bloodIndexName, typeName, maxsize);
             }
         }
