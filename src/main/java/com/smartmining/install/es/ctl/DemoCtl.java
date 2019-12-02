@@ -144,6 +144,7 @@ public class DemoCtl {
         treeData.stream().forEach(e -> {
             e.put("c_tenant_one_code", code);
             e.put("c_id", e.getString("c_id").replace(oldcode, code));
+            e.put("c_pid", e.getString("c_pid").replace(oldcode, code));
 //            e.put("c_id",UUID.randomUUID().toString().replace("-",""));//测试用
             logger.info("写入资源{}",e.toJSONString());
         });
