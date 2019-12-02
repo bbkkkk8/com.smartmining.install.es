@@ -156,6 +156,7 @@ public class DemoCtl {
 
         for (JSONObject obj : treeData) {
             cnt++;
+            logger.info("=======================已经导入{}条记录",cnt);
             index = new Index.Builder(obj).id(obj.getString("c_id")).build();
             bulk.addAction(index);
             batchDeleteBlood(obj.getString("c_id"), bloodIndexName, typeName, jestClient);
