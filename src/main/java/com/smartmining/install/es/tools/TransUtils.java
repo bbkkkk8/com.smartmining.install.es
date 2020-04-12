@@ -37,11 +37,11 @@ public class TransUtils {
         ((ch.qos.logback.classic.Logger) logger).setLevel(Level.INFO);
         try {
             JestClient jestClient = null;
-            int maxsize = 500;
+            int maxsize = 1;
             String tenantOneCode = "T1000";
             String indexName = "x_restree_release";
             String typeName = "def_release";
-            String elasticIps = "http://192.168.0.22:9100";
+            String elasticIps = "http://192.168.0.22:9200";
             JestClientFactory factory = new JestClientFactory();
             factory.setHttpClientConfig(new HttpClientConfig.Builder(elasticIps).connTimeout(60000).readTimeout(60000).multiThreaded(true).build());
             jestClient = factory.getObject();
@@ -51,13 +51,13 @@ public class TransUtils {
             String tenantOneCode1 = "T1000";
             String indexName1 = "x_restree";
             String typeName1 = "def";
-            String elasticIps1 = "http://192.168.0.91:29300";
+            String elasticIps1 = "http://192.168.0.91:29200";
             JestClientFactory factory1 = new JestClientFactory();
             factory1.setHttpClientConfig(new HttpClientConfig.Builder(elasticIps1).connTimeout(60000).readTimeout(60000).multiThreaded(true).build());
-            jestClient1 = factory.getObject();
+            jestClient1 = factory1.getObject();
 
 
-            int pageStart = 1000;
+            int pageStart = 0;
             int resultSize = 0;
             while (true) {
                 SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
