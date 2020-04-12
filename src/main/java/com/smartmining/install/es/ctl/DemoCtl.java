@@ -35,66 +35,66 @@ public class DemoCtl {
     private Environment env;
 
 
-//    @RequestMapping("/exportz")
-//    public String exportz(@RequestParam String code, HttpServletResponse response) {
-//        JestClient jestClient = null;
-//        try {
-//            String indexName = env.getProperty("es.index.name");
-//            String typeName = env.getProperty("es.index.type");
-//            String elasticIps = env.getProperty("es.address");
-//            int maxsize = Integer.parseInt(env.getProperty("es.maxrow"));
-////            String indexName = "x_restree_dev";
-////            String typeName = "def_dev";
-////            String elasticIps = "http://192.168.0.23:9200";
-//            JestClientFactory factory = new JestClientFactory();
-//            factory.setHttpClientConfig(new HttpClientConfig.Builder(elasticIps).connTimeout(60000).readTimeout(60000).multiThreaded(true).build());
-//            jestClient = factory.getObject();
-//            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-//            searchSourceBuilder.from(0).size(maxsize);
-//            searchSourceBuilder.query(QueryBuilders.termQuery("c_tenant_one_code", code));
-//            Search search = new Search.Builder(searchSourceBuilder.toString())
-//                    .addIndex(indexName)
-//                    .addType(typeName)
-//                    .build();
-//            JestResult jr = jestClient.execute(search);
-//            List<String> results = jr.getSourceAsStringList();
-//            if (results.size() < 0) {
-//                logger.warn("没有查询到数据");
-//                return "没有查询到数据";
-//            }
-//            JSONArray dataArr = new JSONArray();
-//            for (int i = 0; i < results.size(); i++) {
-//                dataArr.add(JSON.parseObject(results.get(i)));
-//            }
-//            byte[] bytes = JSON.toJSONBytes(dataArr);
-//            try {
-//                String fileName = code + "_" + getToDayDateStr() + ".json";
-//                response.addHeader("Content-Disposition", "attachment;filename=" + fileName);
-//                response.addHeader("filename", fileName);
-//                OutputStream toClient = new BufferedOutputStream(response.getOutputStream());
-//                response.setContentType("*/*");
-//                toClient.write(bytes);
-//                toClient.flush();
-//                toClient.close();
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//                logger.error("文件下载异常！", e);
-//
-//            }
-//
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        } finally {
-//            if (jestClient != null) {
-//                try {
-//                    jestClient.close();
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                }
-//            }
-//        }
-//        return "success";
-//    }
+    @RequestMapping("/exportz")
+    public String exportz(@RequestParam String code, HttpServletResponse response) {
+        JestClient jestClient = null;
+        try {
+            String indexName = env.getProperty("es.index.name");
+            String typeName = env.getProperty("es.index.type");
+            String elasticIps = env.getProperty("es.address");
+            int maxsize = Integer.parseInt(env.getProperty("es.maxrow"));
+//            String indexName = "x_restree_dev";
+//            String typeName = "def_dev";
+//            String elasticIps = "http://192.168.0.23:9200";
+            JestClientFactory factory = new JestClientFactory();
+            factory.setHttpClientConfig(new HttpClientConfig.Builder(elasticIps).connTimeout(60000).readTimeout(60000).multiThreaded(true).build());
+            jestClient = factory.getObject();
+            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+            searchSourceBuilder.from(0).size(maxsize);
+            searchSourceBuilder.query(QueryBuilders.termQuery("c_tenant_one_code", code));
+            Search search = new Search.Builder(searchSourceBuilder.toString())
+                    .addIndex(indexName)
+                    .addType(typeName)
+                    .build();
+            JestResult jr = jestClient.execute(search);
+            List<String> results = jr.getSourceAsStringList();
+            if (results.size() < 0) {
+                logger.warn("没有查询到数据");
+                return "没有查询到数据";
+            }
+            JSONArray dataArr = new JSONArray();
+            for (int i = 0; i < results.size(); i++) {
+                dataArr.add(JSON.parseObject(results.get(i)));
+            }
+            byte[] bytes = JSON.toJSONBytes(dataArr);
+            try {
+                String fileName = code + "_" + getToDayDateStr() + ".json";
+                response.addHeader("Content-Disposition", "attachment;filename=" + fileName);
+                response.addHeader("filename", fileName);
+                OutputStream toClient = new BufferedOutputStream(response.getOutputStream());
+                response.setContentType("*/*");
+                toClient.write(bytes);
+                toClient.flush();
+                toClient.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+                logger.error("文件下载异常！", e);
+
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (jestClient != null) {
+                try {
+                    jestClient.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return "success";
+    }
 
     /**
      * 如果上传的地方upload.html中的名称如果和这里的参数MultipartFile名称一致的话就不用加@RequestParm注解，
